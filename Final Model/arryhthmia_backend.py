@@ -1,3 +1,37 @@
+from numpy import array
+from sklearn.model_selection import KFold
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import regularizers
+from tensorflow.keras.callbacks import ModelCheckpoint
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy import signal
+from sklearn.model_selection import train_test_split
+import sklearn
+import itertools
+import tensorflow_addons
+from tensorflow_addons.optimizers import CyclicalLearningRate
+from tensorflow.keras.callbacks import Callback
+import tensorflow_addons as tfa
+import matplotlib as mpl
+mpl.style.use('seaborn')
+plt.rcParams["figure.figsize"] = (13,4)
+import matplotlib.pyplot as plt 
+from os import listdir 
+import requests
+import matplotlib.pyplot as plt
+from os import listdir, mkdir, system
+from os.path import isfile, isdir, join, exists
+import json
+import os
+from tqdm import tqdm
+from matplotlib import collections as matcoll
+import pywt
+
+import neurokit2 as nk
 
 def round_robin(RR_interval):
 
@@ -97,7 +131,7 @@ def detect_r_peaks(patient_list,case,showplots=False):
     data_with_rr['label']=case_name
     return data_with_rr  #returning data containing RR Intervals with label
 
-def append_r_peaks(patient_list,case,showplots=False):
+def append_r_peaks(patient_list,case,sampling_rate=500,showplots=False):
     rr_ints=[]
     rri_with_patient_id = {}
     # rr_ints=np.array(rr_ints) 
@@ -137,65 +171,6 @@ def append_r_peaks(patient_list,case,showplots=False):
 
     print("Total no. of RR Intervals in",case," class is:",len(rr_ints),"\n")
     return rri_with_patient_id  #returning data containing RR Intervals with label
-
-def extractor(case,id):
-  cnt_id={}
-  nsr_det_rri = []
-  nsr_det_rri = np.array(nsr_det_rri)
-  afib_det_rri = []
-  afib_det_rri = np.array(afib_det_rri)
-  afl_det_rri = []
-  afl_det_rri = np.array(afl_det_rri)
-  afl_list = []
-  for i in id:
-    label=subject_label[all_subjects[i]]
-    if label in cnt_id:
-      cnt_id[label]+=1
-    else:
-      cnt_id[label]=1
-    name=all_subjects[i]
-    if(label=='nsr'):
-      nsr_det_rri=np.append(nsr_det_rri,nsr_rri[name])
-    elif(label=='afl'):
-      afl_list.append(name)
-      afl_det_rri=np.append(afl_det_rri,afl_rri[name])
-    else:
-      afib_det_rri=np.append(afib_det_rri,afib_rri[name])
-    ## 
-  print(case,":",cnt_id)
-  print(len(afib_det_rri),len(nsr_det_rri),len(afl_det_rri))
-
-  p1 = np.random.permutation(afl_list)
-  p2 = np.random.permutation(afl_list)
-  # print(len(p1)," , ",len(p2))
-  for k in p1:
-    afl_det_rri=np.append(afl_det_rri,afl_rri[k])
-  for k in p2:
-    afl_det_rri=np.append(afl_det_rri,afl_rri[k])
-  print("After patient Scrambling:",len(afl_det_rri))
-
-
-
-  afib_vectors = round_robin(afib_det_rri)
-  afl_vectors = round_robin(afl_det_rri)
-  nsr_vectors = round_robin(nsr_det_rri)
-  len__puncture = min(len(afib_vectors),min(len(nsr_vectors),len(afl_vectors)))
-  afib_vectors = afib_vectors[:len__puncture]
-  afl_vectors = afl_vectors[:len__puncture]
-  nsr_vectors = nsr_vectors[:len__puncture]
-
-  afib_rr = pd.DataFrame(afib_vectors)
-  afib_rr['label']='afib'
-  nsr_rr = pd.DataFrame(nsr_vectors)
-  nsr_rr['label']='nsr'
-  afl_rr = pd.DataFrame(afl_vectors)
-  afl_rr['label']='afl'
-
-  full_data_with_rr=pd.concat([afib_rr,nsr_rr,afl_rr])
-  dict = {'nsr': 0, 'afib': 1, 'afl':2}
-  full_data_with_rr.replace({'label': dict},inplace=True)
-  return full_data_with_rr
-
 
 def pretty_plot(history, field, fn):
   def plot(data, val_data, best_index, best_value, title):
@@ -421,3 +396,5 @@ def train_1_fold(train,test,NN):
     plt.figure()
     plot_confusion_matrix(cnf_matrix, classes=['NSR', 'AFIB','AFL'],
                         title='Confusion matrix, without normalization')
+
+print("File Import Success")                        
