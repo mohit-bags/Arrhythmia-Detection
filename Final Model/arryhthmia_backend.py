@@ -20,16 +20,13 @@ import matplotlib as mpl
 mpl.style.use('seaborn')
 plt.rcParams["figure.figsize"] = (13,4)
 import matplotlib.pyplot as plt 
-from os import listdir 
 import requests
 import matplotlib.pyplot as plt
 from os import listdir, mkdir, system
 from os.path import isfile, isdir, join, exists
 import json
-import os
 from tqdm import tqdm
 from matplotlib import collections as matcoll
-import pywt
 
 import neurokit2 as nk
 
@@ -38,9 +35,7 @@ def round_robin(RR_interval):
   RR_interval=RR_interval.tolist()
   wind_size = 100
   data_vect = []
-  modified_data_vector = []
-  ex_index = []
-
+  
   #CREATE DATA VECTOR
   for i in tqdm(range(len(RR_interval))):
 
@@ -77,7 +72,6 @@ def plot_rr(rrintervals,rr_diff):
 
 def detect_r_peaks(patient_list,case,showplots=False):
     parent_folder = '/content/ECGDataDenoised/'
-
     data_with_rr = pd.DataFrame()
     patient_col_id = []
     case_name = []
@@ -322,6 +316,7 @@ def get_resnet_model(categories=3): #original
   model = keras.Model(inputs=inputs, outputs=output)
   return model
 
+
 def train_1_fold(train,test,NN):
     # train=pd.read_csv("/content/drive/MyDrive/train_with_rr_20.csv")
     train = train.sample(frac=1).reset_index(drop=True)
@@ -358,7 +353,7 @@ def train_1_fold(train,test,NN):
     
     
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-    m_resnet_model = get_resnet_model(7)
+    m_resnet_model = get_resnet_model(NN)
 
     save_best_weights = ModelCheckpoint(filepath="weights.hdf5", verbose=0, save_best_only=True)
 
@@ -368,9 +363,10 @@ def train_1_fold(train,test,NN):
     pretty_plot(history, 'loss', lambda x: np.argmin(x))
     pretty_plot(history, 'accuracy', lambda x: np.argmax(x))
     m_resnet_model.load_weights('weights.hdf5')
-    X_arhy_test = m_resnet_model.evaluate(X_arhyl_test, y_arhyl_test)   
-
-    print("\n****** Validation data *****\n")
+    print("\n****** Val data (used to tune hyperparameters for model) *****\n")
+    test_stats = m_resnet_model.evaluate(X_arhyl_test, y_arhyl_test)   
+    test_acc = round(test_stats[1],2)
+    
     y_pred = tf.argmax(m_resnet_model.predict(X_arhyl_test), axis=-1)
     # Compute confusion matrix
     cnf_matrix = sklearn.metrics.confusion_matrix(y_arhy_test, y_pred)
@@ -384,9 +380,13 @@ def train_1_fold(train,test,NN):
     X_arhy_test_10split = full_test_set.iloc[:,:-1].values
     y_arhy_test_10split = full_test_set.iloc[:,-1].values
 
-    m_resnet_model.evaluate(X_arhy_test_10split, y_arhy_test_10split)
+    print("\n****** Validation data (unseen to model) *****\n")
+    ###########
+    val_stats=m_resnet_model.evaluate(X_arhy_test_10split, y_arhy_test_10split)
+    val_acc = round(val_stats[1],4)
+    
 
-    print("\n****** Validation data *****\n")
+    
     y_pred = tf.argmax(m_resnet_model.predict(X_arhy_test_10split), axis=-1)
     # Compute confusion matrix
     cnf_matrix = sklearn.metrics.confusion_matrix(y_arhy_test_10split, y_pred)
@@ -396,5 +396,8 @@ def train_1_fold(train,test,NN):
     plt.figure()
     plot_confusion_matrix(cnf_matrix, classes=['NSR', 'AFIB','AFL'],
                         title='Confusion matrix, without normalization')
+    
+    print("Final Accuracy:",val_acc*100,"%\n")
+    return float(val_acc*100)
 
 print("File Import Success")                        
